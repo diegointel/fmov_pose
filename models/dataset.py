@@ -637,6 +637,8 @@ class Dataset:
         """
         Generate random rays at world space from one camera.
         """
+        self.images = self.images.to('cuda:0')
+        self.masks = self.masks.to('cuda:0')
 
         if mask_guided_sampling and np.random.rand() < 0.7:
             mask = self.masks_np[img_idx][:, :, 0]
@@ -675,7 +677,7 @@ class Dataset:
         else:
             depth = None
         return torch.cat(
-            [rays_o.cpu(), rays_v.cpu(), color, mask[:, :1]], dim=-1
+            [rays_o, rays_v, color, mask[:, :1]], dim=-1
         ).cuda(), depth
 
     def gen_random_ray_pairs_at(

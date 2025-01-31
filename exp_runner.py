@@ -44,6 +44,26 @@ def get_gradients(params):
     return np.min(norms), np.max(norms), np.mean(norms)
 
 
+def extract_camera_poses(poses, image_names, output_csv):
+    """
+    Extract and save camera poses to a CSV file.
+
+    Args:
+        poses (list of torch.Tensor): List of camera poses (4x4 transformation matrices).
+        image_names (list of str): List of image names corresponding to the poses.
+        output_csv (str): Path to save the extracted camera poses.
+    """
+    with open(output_csv, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Image Name', 'Camera Pose'])
+
+        for image_name, pose in zip(image_names, poses):
+            pose_str = ' '.join(map(str, pose.flatten().tolist()))
+            writer.writerow([image_name, pose_str])
+
+    print(f'Camera poses saved to {output_csv}')
+
+
 class Runner:
     def __init__(
         self,
@@ -339,7 +359,7 @@ class Runner:
         self.maintain_shape = self.conf.get_bool("train.maintain_shape", default=False)
 
         self.remove_prev_matches = self.conf.get_bool(
-            "train.remove_prev_matches", default=False
+            "train.remove_prev_matches", default=True
         )
         if self.remove_prev_matches:
             print("Remove previous matches...")
@@ -954,7 +974,11 @@ class Runner:
                     self.save_checkpoint()  # we save the final model
                     # we are ready to reboot for global training
                     return
-
+        poses = self.dataset.pose_all  # Assuming this is where the poses are stored
+        image_names = [os.path.basename(image_path) for image_path in self.dataset.images_lis]  # Get the image file names  # Example image names
+        output_csv = os.path.join(self.base_exp_dir, f'{self.case}_camera_poses.csv')
+        extract_camera_poses(poses, image_names, output_csv)
+        
     def get_image_perm(self):
         if self.progressive:
             if self.current_image > self.image_interval:
